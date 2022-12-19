@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <cstddef>
 #include <cstdint>
+#include <iostream>
 #include <map>
 #include <set>
 #include <vector>
@@ -73,7 +74,7 @@ public:
   }
 
   std::vector<Index> getEdgesBetweenNodes(Index node_1, Index node_2) {
-    assert(node_1 < nodes.size() && node_2 < nodes.size());
+    assert(node_1 <= nodes.size() && node_2 <= nodes.size());
     std::vector<Index> result;
     for (auto i = 0; i < bitMatrix.size(); i++) {
       if (bitMatrix[i].get(node_1) && bitMatrix[i].get(node_2)) {
@@ -93,7 +94,7 @@ public:
 
   bool checkConnectionInEdges(Index node_1, Index node_2,
                               std::vector<Index> &edges) {
-    assert(node_1 < nodes.size() && node_2 < nodes.size());
+    assert(node_1 <= nodes.size() && node_2 <= nodes.size());
 
     for (auto e : edges) {
       if (e < bitMatrix.size()) {
@@ -112,9 +113,7 @@ public:
 
     std::sort(nodes.begin(), nodes.end());
     for (auto n : nodes) {
-      if (n < nodes.size()) {
-        comp.set(n);
-      }
+      comp.set(n);
     }
 
     for (auto i = 0; i < bitMatrix.size(); i++) {
@@ -126,20 +125,18 @@ public:
     return result;
   }
 
-  std::vector<bitmap> getEdgesBitmapAmongNodes(std::vector<Index> &nodes) {
+  std::map<Index, bitmap> getEdgesBitmapAmongNodes(std::vector<Index> &nodes) {
     bitmap comp;
-    std::vector<bitmap> result;
+    std::map<Index, bitmap> result;
 
     std::sort(nodes.begin(), nodes.end());
     for (auto n : nodes) {
-      if (n < nodes.size()) {
-        comp.set(n);
-      }
+      comp.set(n);
     }
 
     for (auto i = 0; i < bitMatrix.size(); i++) {
       if (comp.logicalandcount(bitMatrix[i]) > 1) {
-        result.push_back(bitMatrix[i]);
+        result.insert(std::pair<Index, bitmap>(i, bitMatrix[i]));
       }
     }
 
@@ -168,12 +165,28 @@ public:
   }
 
   bool checkNodeInEdge(Index node, Index edge) {
-    assert(edge < bitMatrix.size() && node < nodes.size());
+    assert(edge < bitMatrix.size() && node <= nodes.size());
     return bitMatrix[edge].get(node);
   }
 
   bool checkNodeInEdgeUnsafe(Index node, Index edge) {
     return bitMatrix[edge].get(node);
+  }
+
+  std::vector<Index> getEdges() {
+    std::vector<Index> temp;
+    for (auto iter = edges.begin(); iter != edges.end(); iter++) {
+      temp.push_back(iter->first);
+    }
+    return temp;
+  }
+
+  std::vector<Index> getNodes() {
+    std::vector<Index> temp;
+    for (auto iter = nodes.begin(); iter != nodes.end(); iter++) {
+      temp.push_back(iter->first);
+    }
+    return temp;
   }
 };
 

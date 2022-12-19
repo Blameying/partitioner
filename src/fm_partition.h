@@ -1,5 +1,7 @@
 #include "definition.h"
 #include <assert.h>
+#include <cstddef>
+#include <iterator>
 #include <list>
 #include <map>
 #include <vector>
@@ -23,7 +25,7 @@ public:
       bucket->push_back(list);
     }
     _max = low;
-    _min = low;
+    _min = high;
     _idSet.clear();
   };
 
@@ -40,6 +42,9 @@ public:
   void removeValueWithGain(Index id, int gain);
   bool getMax(Index &index);
   bool getMin(Index &index);
+  int getGain(Index &index);
+  int incrementGain(Index &index, int value);
+  void debugInfo();
 };
 
 class FM {
@@ -49,7 +54,7 @@ private:
   std::set<Index> locked;
 
 public:
-  FM(std::vector<Index> &part_1, std::vector<Index> &part_2, HyperGraph &graph,
+  FM(std::set<Index> &part_1, std::set<Index> &part_2, HyperGraph &graph,
      float ratio);
   ~FM() { delete sorter; };
 };
