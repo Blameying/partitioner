@@ -152,6 +152,25 @@ int BucketSorter::incrementGain(Index &index, int value) {
   return gain;
 }
 
+bool BucketSorter::getHighAvalible(Index &index,
+                                   std::function<bool(Index)> filter) {
+  if (_idSet.size() == 0) {
+    return false;
+  }
+
+  for (int i = _max - _low; i > _min - _low; i--) {
+    assert(bucket->[i] -> size() > 0);
+    for (auto iter = (*bucket)[i]->begin(); iter != (*bucket)[i]->end();
+         iter++) {
+      if (filter(*iter)) {
+        index = *iter;
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 void BucketSorter::debugInfo() {
   std::cout << "low: " << _low << " high: " << _high << std::endl;
   std::cout << "Gain range: " << _min << "::" << _max << std::endl;
@@ -173,9 +192,26 @@ FM::FM(std::set<Index> &part_1, std::set<Index> &part_2, HyperGraph &graph,
   std::vector<Index> all_nodes(part_1.begin(), part_1.end());
   all_nodes.insert(all_nodes.end(), part_2.begin(), part_2.end());
   std::map<Index, bitmap> matrix = graph.getEdgesBitmapAmongNodes(all_nodes);
-  sorter = new BucketSorter(-matrix.size(), matrix.size());
+
+  auto condition_checker = [ratio, &all_nodes](size_t count) -> bool {
+    /* Assume that the area of all nodes is 1 */
+    return (count >= ratio * all_nodes.size() - 1) &&
+           (count <= ratio * all_nodes.size() + 1);
+  };
+
+  auto highest_gain = [&part_1, condition_checker, this](Index index) -> bool {
+    if (this->locked.find(index) != this->locked.end()) {
+      return false;
+    }
+    if (part_1.find(index) != part_1.end()) {
+      return condition_checker(part_1.size() - 1);
+    } else {
+      return condition_checker(part_1.size() + 1);
+    }
+  };
 
   while (true) {
+    sorter = new BucketSorter(-matrix.size(), matrix.size());
     bitmap part_1_map;
     bitmap part_2_map;
     for (auto n : part_1) {
@@ -218,7 +254,21 @@ FM::FM(std::set<Index> &part_1, std::set<Index> &part_2, HyperGraph &graph,
       sorter->debugInfo();
 #endif
     }
-    break;
+
+    Index need_to_move = 0;
+    if (sorter->getHighAvalible(need_to_move, highest_gain)) {
+      if (part_1.find(need_to_move) != part_1.end()) {
+        part_2.insert(need_to_move);
+        part_1.erase(need_to_move);
+      } else {
+        part_1.insert(need_to_move);
+        part_2.erase(need_to_move);
+      }
+      locked.insert(need_to_move);
+      delete sorter;
+    } else {
+      break;
+    }
   }
 }
 

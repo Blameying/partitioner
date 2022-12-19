@@ -1,6 +1,7 @@
 #include "definition.h"
 #include <assert.h>
 #include <cstddef>
+#include <functional>
 #include <iterator>
 #include <list>
 #include <map>
@@ -44,6 +45,7 @@ public:
   bool getMin(Index &index);
   int getGain(Index &index);
   int incrementGain(Index &index, int value);
+  bool getHighAvalible(Index &index, std::function<bool(Index)> filter);
   void debugInfo();
 };
 

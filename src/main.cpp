@@ -15,5 +15,14 @@ int main(int argc, char *argv[]) {
   std::set<Index> second({3, 4, 5});
   FM fm = FM(first, second, graph, 0.5);
 
+  std::cout << "Part 1: " << std::endl;
+  for (auto i : first) {
+    std::cout << i << " " << std::endl;
+  }
+  std::cout << std::endl << "Part 2: " << std::endl;
+  for (auto i : second) {
+    std::cout << i << " " << std::endl;
+  }
+
   return 0;
 }
