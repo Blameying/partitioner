@@ -2,7 +2,9 @@
 #include "fm_partition.h"
 #include "parser_input.h"
 #include <assert.h>
+#include <cstddef>
 #include <iostream>
+#include <map>
 
 using namespace Partition;
 int main(int argc, char *argv[]) {
@@ -13,7 +15,14 @@ int main(int argc, char *argv[]) {
 
   std::set<Index> first({1, 2});
   std::set<Index> second({3, 4, 5});
-  FM fm = FM(first, second, graph, 0.5);
+
+  std::map<Index, int> areas;
+  areas[1] = 1;
+  areas[2] = 1;
+  areas[3] = 1;
+  areas[4] = 1;
+  areas[5] = 1;
+  FM fm = FM(first, second, areas, graph, 0.5);
 
   std::cout << "Part 1: " << std::endl;
   for (auto i : first) {

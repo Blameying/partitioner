@@ -60,8 +60,8 @@ private:
                         std::map<Index, bitmap> &matrix);
 
 public:
-  FM(std::set<Index> &part_1, std::set<Index> &part_2, HyperGraph &graph,
-     float ratio);
+  FM(std::set<Index> &part_1, std::set<Index> &part_2,
+     std::map<Index, int> &areas, HyperGraph &graph, float ratio);
   ~FM() { delete sorter; };
 };
 

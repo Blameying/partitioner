@@ -185,27 +185,48 @@ void BucketSorter::debugInfo() {
   }
 }
 
-FM::FM(std::set<Index> &part_1, std::set<Index> &part_2, HyperGraph &graph,
-       float ratio)
+FM::FM(std::set<Index> &part_1, std::set<Index> &part_2,
+       std::map<Index, int> &areas, HyperGraph &graph, float ratio)
     : ratio(ratio) {
-  std::vector<Index> all_nodes(part_1.begin(), part_1.end());
-  all_nodes.insert(all_nodes.end(), part_2.begin(), part_2.end());
+  std::vector<Index> all_nodes;
+
+  /* area related value */
+  size_t total_area = 0;
+  size_t max_area = 0;
+  size_t part_1_area = 0;
+  size_t part_2_area = 0;
+  for (auto i : areas) {
+    all_nodes.push_back(i.first);
+    total_area += i.second;
+    if (max_area < i.second) {
+      max_area = i.second;
+    }
+    if (part_1.find(i.first) != part_1.end()) {
+      part_1_area += i.second;
+    } else {
+      part_2_area += i.second;
+    }
+  }
+
   std::map<Index, bitmap> matrix = graph.getEdgesBitmapAmongNodes(all_nodes);
 
-  auto condition_checker = [ratio, &all_nodes](size_t count) -> bool {
+  auto condition_checker = [ratio, total_area, max_area](size_t area) -> bool {
     /* Assume that the area of all nodes is 1 */
-    return (count >= ratio * all_nodes.size() - 1) &&
-           (count <= ratio * all_nodes.size() + 1);
+    return (area >= ratio * total_area - max_area) &&
+           (area <= ratio * total_area + max_area);
   };
 
-  auto highest_gain = [&part_1, condition_checker, this](Index index) -> bool {
+  auto highest_gain = [&part_1, condition_checker, &part_1_area, this,
+                       &areas](Index index) -> bool {
     if (this->locked.find(index) != this->locked.end()) {
       return false;
     }
+
+    size_t index_area = areas.find(index)->second;
     if (part_1.find(index) != part_1.end()) {
-      return condition_checker(part_1.size() - 1);
+      return condition_checker(part_1_area - index_area);
     } else {
-      return condition_checker(part_1.size() + 1);
+      return condition_checker(part_1_area + index_area);
     }
   };
 
@@ -213,12 +234,18 @@ FM::FM(std::set<Index> &part_1, std::set<Index> &part_2, HyperGraph &graph,
   while (true) {
     Index need_to_move = 0;
     if (sorter->getHighAvalible(need_to_move, highest_gain)) {
+      /* update area infomation */
+      size_t need_to_move_area = areas.find(need_to_move)->second;
       if (part_1.find(need_to_move) != part_1.end()) {
         part_2.insert(need_to_move);
         part_1.erase(need_to_move);
+        part_1_area -= need_to_move_area;
+        part_2_area += need_to_move_area;
       } else {
         part_1.insert(need_to_move);
         part_2.erase(need_to_move);
+        part_1_area += need_to_move_area;
+        part_2_area -= need_to_move_area;
       }
       locked.insert(need_to_move);
     } else {
