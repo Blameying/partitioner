@@ -159,7 +159,6 @@ bool BucketSorter::getHighAvalible(Index &index,
   }
 
   for (int i = _max - _low; i > _min - _low; i--) {
-    assert(bucket->[i] -> size() > 0);
     for (auto iter = (*bucket)[i]->begin(); iter != (*bucket)[i]->end();
          iter++) {
       if (filter(*iter)) {
@@ -210,51 +209,8 @@ FM::FM(std::set<Index> &part_1, std::set<Index> &part_2, HyperGraph &graph,
     }
   };
 
+  initBucketSorter(part_1, part_2, matrix);
   while (true) {
-    sorter = new BucketSorter(-matrix.size(), matrix.size());
-    bitmap part_1_map;
-    bitmap part_2_map;
-    for (auto n : part_1) {
-      part_1_map.set(n);
-    }
-
-    for (auto n : part_2) {
-      part_2_map.set(n);
-    }
-
-    for (auto iter = matrix.begin(); iter != matrix.end(); iter++) {
-      auto and_1 = iter->second.logicaland(part_1_map);
-      auto and_2 = iter->second.logicaland(part_2_map);
-      size_t count_1 = and_1.numberOfOnes();
-      size_t count_2 = and_2.numberOfOnes();
-
-      if (count_1 == 0) {
-        /* internal connection in part_2 */
-        for (auto n : and_2.toArray()) {
-          sorter->incrementGain(n, -1);
-        }
-      } else if (count_2 == 0) {
-        for (auto n : and_1.toArray()) {
-          sorter->incrementGain(n, -1);
-        }
-      } else {
-        if (count_1 == 1) {
-          /* perfect external connection */
-          for (auto n : and_1.toArray()) {
-            sorter->incrementGain(n, 1);
-          }
-        }
-        if (count_2 == 1) {
-          for (auto n : and_2.toArray()) {
-            sorter->incrementGain(n, 1);
-          }
-        }
-      }
-#if DEBUG
-      sorter->debugInfo();
-#endif
-    }
-
     Index need_to_move = 0;
     if (sorter->getHighAvalible(need_to_move, highest_gain)) {
       if (part_1.find(need_to_move) != part_1.end()) {
@@ -265,10 +221,112 @@ FM::FM(std::set<Index> &part_1, std::set<Index> &part_2, HyperGraph &graph,
         part_2.erase(need_to_move);
       }
       locked.insert(need_to_move);
-      delete sorter;
     } else {
       break;
     }
+
+    bitmap part_1_map;
+    bitmap part_2_map;
+
+    for (auto n : part_1) {
+      part_1_map.set(n);
+    }
+    for (auto n : part_2) {
+      part_2_map.set(n);
+    }
+    for (auto iter = matrix.begin(); iter != matrix.end(); iter++) {
+      if (iter->second.get(need_to_move)) {
+        bitmap and_1 = part_1_map.logicaland(iter->second);
+        bitmap and_2 = part_2_map.logicaland(iter->second);
+
+        if (and_1.empty()) {
+          for (auto v : and_2.toArray()) {
+            sorter->incrementGain(v, -2);
+          }
+        } else if (and_2.empty()) {
+          for (auto v : and_1.toArray()) {
+            sorter->incrementGain(v, -2);
+          }
+        } else {
+          if (and_1.get(need_to_move) && and_2.numberOfOnes() == 1) {
+            int change = 0;
+            if (iter->second.numberOfOnes() > 2) {
+              change = 1;
+            } else {
+              change = 2;
+            }
+
+            for (auto v : and_1.toArray()) {
+              sorter->incrementGain(v, -change);
+            }
+            for (auto v : and_2.toArray()) {
+              sorter->incrementGain(v, change);
+            }
+          } else if (and_2.get(need_to_move) && and_1.numberOfOnes() == 1) {
+            int change = 0;
+            if (iter->second.numberOfOnes() > 2) {
+              change = 1;
+            } else {
+              change = 2;
+            }
+
+            for (auto v : and_1.toArray()) {
+              sorter->incrementGain(v, change);
+            }
+            for (auto v : and_2.toArray()) {
+              sorter->incrementGain(v, -change);
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+void FM::initBucketSorter(std::set<Index> &part_1, std::set<Index> &part_2,
+                          std::map<Index, bitmap> &matrix) {
+  sorter = new BucketSorter(-matrix.size(), matrix.size());
+  bitmap part_1_map;
+  bitmap part_2_map;
+  for (auto n : part_1) {
+    part_1_map.set(n);
+  }
+
+  for (auto n : part_2) {
+    part_2_map.set(n);
+  }
+
+  for (auto iter = matrix.begin(); iter != matrix.end(); iter++) {
+    auto and_1 = iter->second.logicaland(part_1_map);
+    auto and_2 = iter->second.logicaland(part_2_map);
+    size_t count_1 = and_1.numberOfOnes();
+    size_t count_2 = and_2.numberOfOnes();
+
+    if (count_1 == 0) {
+      /* internal connection in part_2 */
+      for (auto n : and_2.toArray()) {
+        sorter->incrementGain(n, -1);
+      }
+    } else if (count_2 == 0) {
+      for (auto n : and_1.toArray()) {
+        sorter->incrementGain(n, -1);
+      }
+    } else {
+      if (count_1 == 1) {
+        /* perfect external connection */
+        for (auto n : and_1.toArray()) {
+          sorter->incrementGain(n, 1);
+        }
+      }
+      if (count_2 == 1) {
+        for (auto n : and_2.toArray()) {
+          sorter->incrementGain(n, 1);
+        }
+      }
+    }
+#if DEBUG
+    sorter->debugInfo();
+#endif
   }
 }
 

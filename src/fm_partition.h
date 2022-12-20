@@ -55,6 +55,10 @@ private:
   BucketSorter *sorter = nullptr;
   std::set<Index> locked;
 
+private:
+  void initBucketSorter(std::set<Index> &part_1, std::set<Index> &part_2,
+                        std::map<Index, bitmap> &matrix);
+
 public:
   FM(std::set<Index> &part_1, std::set<Index> &part_2, HyperGraph &graph,
      float ratio);
