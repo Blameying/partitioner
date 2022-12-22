@@ -1,3 +1,4 @@
+#include "coarsening.h"
 #include "definition.h"
 #include "fm_partition.h"
 #include "parser_input.h"
@@ -22,7 +23,7 @@ int main(int argc, char *argv[]) {
   areas[3] = 1;
   areas[4] = 1;
   areas[5] = 1;
-  FM fm = FM(first, second, areas, graph, 0.5);
+  FM fm = FM(first, second, graph, 0.5);
 
   std::cout << "Part 1: " << std::endl;
   for (auto i : first) {
@@ -32,6 +33,8 @@ int main(int argc, char *argv[]) {
   for (auto i : second) {
     std::cout << i << " " << std::endl;
   }
+
+  // Multilevel(graph, 0.5, 1);
 
   return 0;
 }

@@ -45,6 +45,7 @@ public:
   bool getMin(Index &index);
   int getGain(Index &index);
   int incrementGain(Index &index, int value);
+  int incrementExistGain(Index &index, int value);
   bool getHighAvalible(Index &index, std::function<bool(Index)> filter);
   void debugInfo();
 };
@@ -57,11 +58,11 @@ private:
 
 private:
   void initBucketSorter(std::set<Index> &part_1, std::set<Index> &part_2,
-                        std::map<Index, bitmap> &matrix);
+                        HyperGraph &graph);
 
 public:
-  FM(std::set<Index> &part_1, std::set<Index> &part_2,
-     std::map<Index, int> &areas, HyperGraph &graph, float ratio);
+  FM(std::set<Index> &part_1, std::set<Index> &part_2, HyperGraph &graph,
+     float ratio);
   ~FM() { delete sorter; };
 };
 

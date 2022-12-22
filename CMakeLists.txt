@@ -2,6 +2,8 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.24)
 
 project(partitioner)
 
+set(CMAKE_CXX_STANDARD 11)
+
 add_subdirectory(src/external_libs/EWAHBoolArray)
 
 if(DEBUG)
@@ -15,6 +17,8 @@ add_executable(${PROJECT_NAME}
   src/parser_input.h
   src/fm_partition.h
   src/fm_partition.cpp
+  src/coarsening.h
+  src/coarsening.cpp
   )
 
 target_link_libraries(${PROJECT_NAME} ewah)
