@@ -9,6 +9,6 @@ private:
   size_t minimal_size = 0;
 
 public:
-  Multilevel(HyperGraph &graph, float ratio, size_t minimal_size) {}
+  Multilevel(HyperGraph &graph, float ratio, size_t minimum_size);
 };
 }; // namespace Partition

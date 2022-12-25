@@ -202,8 +202,9 @@ void BucketSorter::debugInfo() {
 }
 
 FM::FM(std::set<Index> &part_1, std::set<Index> &part_2, HyperGraph &graph,
-       float ratio)
+       float ratio, int k)
     : ratio(ratio) {
+  graph.debugInfo();
   /* ignore the first value, and it belongs to no node */
   auto total_area = std::accumulate(graph.weight_of_nodes->begin() + 1,
                                     graph.weight_of_nodes->end(), 0);
@@ -258,6 +259,10 @@ FM::FM(std::set<Index> &part_1, std::set<Index> &part_2, HyperGraph &graph,
       }
       locked.insert(need_to_move);
       sorter->removeValue(need_to_move);
+
+      if (k != 0 && locked.size() == k) {
+        break;
+      }
     } else {
       break;
     }

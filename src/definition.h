@@ -85,6 +85,13 @@ public:
     return result;
   }
 
+  void debugInfo() {
+    std::cout << "graph info: " << std::endl;
+    for (auto i = 0; i < bitMatrix.size(); i++) {
+      std::cout << "Edge " << i << " nodes: " << bitMatrix[i] << std::endl;
+    }
+  }
+
   ~HyperGraph() {
     weight_of_edges->clear();
     weight_of_edges->shrink_to_fit();

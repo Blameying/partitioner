@@ -62,7 +62,11 @@ private:
 
 public:
   FM(std::set<Index> &part_1, std::set<Index> &part_2, HyperGraph &graph,
-     float ratio);
+     float ratio) {
+    FM(part_1, part_2, graph, ratio, 0);
+  };
+  FM(std::set<Index> &part_1, std::set<Index> &part_2, HyperGraph &graph,
+     float ratio, int k);
   ~FM() { delete sorter; };
 };
 
