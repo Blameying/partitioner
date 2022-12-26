@@ -3,12 +3,6 @@
 #include "definition.h"
 namespace Partition {
 
-class Multilevel {
-private:
-  float ratio = 0;
-  size_t minimal_size = 0;
-
-public:
-  Multilevel(HyperGraph &graph, float ratio, size_t minimum_size);
-};
+std::map<Index, int> Multilevel(HyperGraph &graph, float ratio,
+                                size_t minimum_size);
 }; // namespace Partition

@@ -40,7 +40,7 @@ Partition::HyperGraph Partition::readDataFromFile(std::string path) {
     Index pin = 0;
     while (stream >> pin) {
       assert(pin <= nodes_count);
-      nodes.push_back(pin);
+      nodes.push_back(pin - 1);
     }
   }
 

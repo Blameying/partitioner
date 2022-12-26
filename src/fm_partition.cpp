@@ -29,7 +29,10 @@ bool BucketSorter::addValue(Index id, int gain) {
 }
 
 bool BucketSorter::updateValue(Index id, int gain) {
-  assert(gain >= _low && gain <= _high);
+  if (gain < _low) {
+    gain = _low;
+  }
+  assert(gain <= _high);
 
   auto iter = _idSet.find(id);
   if (iter != _idSet.end()) {
@@ -174,7 +177,7 @@ bool BucketSorter::getHighAvalible(Index &index,
     return false;
   }
 
-  for (int i = _max - _low; i > _min - _low; i--) {
+  for (int i = _max - _low; i >= _min - _low; i--) {
     for (auto iter = (*bucket)[i]->begin(); iter != (*bucket)[i]->end();
          iter++) {
       if (filter(*iter)) {
@@ -184,6 +187,18 @@ bool BucketSorter::getHighAvalible(Index &index,
     }
   }
   return false;
+}
+
+int BucketSorter::getAllGain() {
+  if (_idSet.size() == 0) {
+    return 0;
+  }
+
+  int result = 0;
+  for (int i = _max - _low; i >= _min - _low; i--) {
+    result += (*bucket)[i]->size() * (i + _low);
+  }
+  return result;
 }
 
 void BucketSorter::debugInfo() {
@@ -204,11 +219,11 @@ void BucketSorter::debugInfo() {
 FM::FM(std::set<Index> &part_1, std::set<Index> &part_2, HyperGraph &graph,
        float ratio, int k)
     : ratio(ratio) {
-  graph.debugInfo();
-  /* ignore the first value, and it belongs to no node */
-  auto total_area = std::accumulate(graph.weight_of_nodes->begin() + 1,
+  std::cout << "part_1 size: " << part_1.size()
+            << "  part_2 size: " << part_2.size() << std::endl;
+  auto total_area = std::accumulate(graph.weight_of_nodes->begin(),
                                     graph.weight_of_nodes->end(), 0);
-  auto max_area = std::max_element(graph.weight_of_nodes->begin() + 1,
+  auto max_area = std::max_element(graph.weight_of_nodes->begin(),
                                    graph.weight_of_nodes->end());
   size_t part_1_area = 0;
   size_t part_2_area = 0;
@@ -220,9 +235,21 @@ FM::FM(std::set<Index> &part_1, std::set<Index> &part_2, HyperGraph &graph,
   }
 
   /* limitation of the sizes of two parts */
-  auto condition_checker = [ratio, total_area, max_area](size_t area) -> bool {
-    return (area >= ratio * total_area - *max_area) &&
-           (area <= ratio * total_area + *max_area);
+  auto condition_checker = [ratio, &part_1_area,
+                            total_area](size_t area) -> bool {
+    size_t half = ratio * total_area;
+    if (part_1_area < half) {
+      if (area > part_1_area)
+        return true;
+      else
+        return false;
+    } else if (part_1_area > half) {
+      if (area < part_1_area)
+        return true;
+      else
+        return false;
+    }
+    return true;
   };
 
   auto highest_gain = [&part_1, condition_checker, &part_1_area, this,
@@ -240,6 +267,7 @@ FM::FM(std::set<Index> &part_1, std::set<Index> &part_2, HyperGraph &graph,
   };
 
   initBucketSorter(part_1, part_2, graph);
+  size_t loop_count = 0;
 
   while (true) {
     Index need_to_move = 0;
@@ -258,12 +286,19 @@ FM::FM(std::set<Index> &part_1, std::set<Index> &part_2, HyperGraph &graph,
         part_2_area -= need_to_move_area;
       }
       locked.insert(need_to_move);
-      sorter->removeValue(need_to_move);
+      // sorter->removeValue(need_to_move);
 
-      if (k != 0 && locked.size() == k) {
-        break;
-      }
     } else {
+      if (sorter->getAllGain() > 0) {
+        if (k != 0) {
+          if (loop_count > k) {
+            break;
+          }
+        }
+        locked.clear();
+        loop_count++;
+        continue;
+      }
       break;
     }
 
@@ -282,54 +317,69 @@ FM::FM(std::set<Index> &part_1, std::set<Index> &part_2, HyperGraph &graph,
         bitmap and_1 = part_1_map.logicaland(*iter);
         bitmap and_2 = part_2_map.logicaland(*iter);
 
-        std::cout << *iter << std::endl;
         size_t edge_weight =
             graph.weight_of_edges->at(iter - graph.bitMatrix.begin());
 
+        int change = 0;
+        if (iter->numberOfOnes() > 2) {
+          change = 1 * edge_weight;
+        } else {
+          change = 2 * edge_weight;
+        }
         if (and_1.empty()) {
           for (auto v : and_2.toArray()) {
-            if (v != need_to_move) {
-              sorter->incrementExistGain(v, -2 * edge_weight);
-            }
+            sorter->incrementExistGain(v, -change);
+          }
+          if (iter->numberOfOnes() > 2) {
+            sorter->incrementExistGain(need_to_move, -change);
           }
         } else if (and_2.empty()) {
           for (auto v : and_1.toArray()) {
-            if (v != need_to_move) {
-              sorter->incrementExistGain(v, -2 * edge_weight);
-            }
+            sorter->incrementExistGain(v, -change);
+          }
+          if (iter->numberOfOnes() > 2) {
+            sorter->incrementExistGain(need_to_move, -change);
           }
         } else {
-          if (and_1.get(need_to_move) && and_2.numberOfOnes() == 1) {
-            int change = 0;
-            if (iter->numberOfOnes() > 2) {
-              change = 1 * edge_weight;
-            } else {
-              change = 2 * edge_weight;
-            }
-
-            for (auto v : and_1.toArray()) {
-              if (v != need_to_move) {
-                sorter->incrementExistGain(v, -change);
+          if (and_1.get(need_to_move)) {
+            if (and_2.numberOfOnes() == 1) {
+              if (and_1.numberOfOnes() == 2) {
+                for (auto v : and_1.toArray()) {
+                  if (v != need_to_move) {
+                    sorter->incrementExistGain(v, -change);
+                  }
+                }
+              } else {
+                sorter->incrementExistGain(need_to_move, change);
               }
-            }
-            for (auto v : and_2.toArray()) {
-              sorter->incrementExistGain(v, change);
-            }
-          } else if (and_2.get(need_to_move) && and_1.numberOfOnes() == 1) {
-            int change = 0;
-            if (iter->numberOfOnes() > 2) {
-              change = edge_weight;
-            } else {
-              change = 2 * edge_weight;
-            }
-
-            for (auto v : and_1.toArray()) {
-              sorter->incrementExistGain(v, change);
-            }
-            for (auto v : and_2.toArray()) {
-              if (v != need_to_move) {
-                sorter->incrementExistGain(v, -change);
+              for (auto v : and_2.toArray()) {
+                sorter->incrementExistGain(v, change);
               }
+            } else if (and_1.numberOfOnes() == 1) {
+              for (auto v : and_2.toArray()) {
+                sorter->incrementExistGain(v, change);
+              }
+              sorter->incrementExistGain(need_to_move, 2 * change);
+            }
+          } else if (and_2.get(need_to_move)) {
+            if (and_1.numberOfOnes() == 1) {
+              for (auto v : and_1.toArray()) {
+                sorter->incrementExistGain(v, change);
+              }
+              if (and_2.numberOfOnes() == 2) {
+                for (auto v : and_2.toArray()) {
+                  if (v != need_to_move) {
+                    sorter->incrementExistGain(v, -change);
+                  }
+                }
+              } else {
+                sorter->incrementExistGain(need_to_move, change);
+              }
+            } else if (and_2.numberOfOnes() == 1) {
+              for (auto v : and_1.toArray()) {
+                sorter->incrementExistGain(v, change);
+              }
+              sorter->incrementExistGain(need_to_move, 2 * change);
             }
           }
         }
@@ -339,12 +389,27 @@ FM::FM(std::set<Index> &part_1, std::set<Index> &part_2, HyperGraph &graph,
     sorter->debugInfo();
 #endif
   }
+
+#if DEBUG
+  std::cout << "---------------------------------------" << std::endl;
+  std::cout << "Part_1: " << std::endl;
+  for (auto n : part_1) {
+    std::cout << n << ", ";
+  }
+  std::cout << std::endl;
+  std::cout << "Part_2: " << std::endl;
+  for (auto n : part_2) {
+    std::cout << n << ", ";
+  }
+  std::cout << std::endl;
+  std::cout << "---------------------------------------" << std::endl;
+#endif
 }
 
 void FM::initBucketSorter(std::set<Index> &part_1, std::set<Index> &part_2,
                           HyperGraph &graph) {
 
-  /* here we can use a more memory saving method, but not necessary for the
+  /* here we can use a more memory efficient method, but not necessary for the
    * given test set */
   size_t range = std::accumulate(graph.weight_of_edges->begin(),
                                  graph.weight_of_edges->end(), 0);

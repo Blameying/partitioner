@@ -60,10 +60,9 @@ public:
                 << std::endl;
 #endif
     }
-    assert(counter.numberOfOnes() == (w_edges.size() + 1));
+    // assert(counter.numberOfOnes() == w_nodes.size());
 
     weight_of_nodes = new std::vector<int>(w_nodes.begin(), w_nodes.end());
-    weight_of_nodes->insert(w_nodes.begin(), 1);
     weight_of_edges = new std::vector<int>(w_edges.begin(), w_edges.end());
   }
 

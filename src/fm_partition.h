@@ -47,6 +47,7 @@ public:
   int incrementGain(Index &index, int value);
   int incrementExistGain(Index &index, int value);
   bool getHighAvalible(Index &index, std::function<bool(Index)> filter);
+  int getAllGain();
   void debugInfo();
 };
 
